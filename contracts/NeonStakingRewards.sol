@@ -69,23 +69,49 @@ contract NeonStakingRewards is Initializable, OwnableUpgradeable {
         }
     }
 
-    // user can stake token amount 
+    /**
+     * @dev Call this function to stake tokens amount.
+     * @param _amount - value of the tokens to stake.
+     */ 
     function stake(uint256 _amount) external {
-
+        require(_amount > 0, "Amount couldn't be 0");
+        stakingToken.transferFrom(msg.sender, address(this), _amount);
+        totalSupply += _amount;
+        stakedUserAmount[msg.sender] += _amount;
     }
 
-    // user can withdraw his staked token amount
+    /**
+     * @dev Call this function to withdraw staked tokens amount.
+     * @param _amount - value of the tokens to withdraw.
+     */
     function withdraw(uint256 _amount) external {
-
+        require(_amount > 0, "Amount couldn't be 0");
+        require(stakedUserAmount[msg.sender] >= _amount, "Insufficient balance");
+        totalSupply -= _amount;
+        stakedUserAmount[msg.sender] -= _amount;
+        stakingToken.transfer(msg.sender, _amount);
     }
 
-    // function that is return the amount of earned reward tokens for the account
+    /**
+     * @dev Call to return the amount of earned reward tokens for the account.
+     * The earned amount is calculated by the next formula: amount of all staked user tokens *
+     * (reward per token - user reward per token paid) + previous user rewards.
+     * 
+     * @param _staker - account which earned rewards.
+     */
     function earn(address _staker) external view returns(uint256 _amount) {
-
+        uint256 stakedAmount = stakedUserAmount[_staker];
+        uint256 userRewardPerToken = userRewardPerTokenPaid[_staker];
+        
+        return stakedAmount * ((calculateRewardPerToken() - userRewardPerToken) / 1e18) + rewards[_staker];
     }
  
     // stakers can claim their rewards
     function claimReward() external {
+
+    }
+
+    function calculateRewardPerToken() public view returns(uint256) {
 
     }
 
