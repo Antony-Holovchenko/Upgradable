@@ -53,6 +53,7 @@ contract NeonStakingRewards is Initializable, OwnableUpgradeable {
      * @param _amount - amount of tokens that will be used for a reward.
      */
     function setRewardAmount(uint256 _amount) external onlyOwner {
+        _updateReward(address(0));
         // checking if the rewardDuration already expired, or not started
         if(block.timestamp > rewardFinishAt) { 
             rewardRate = _amount / rewardDuration;
@@ -73,8 +74,10 @@ contract NeonStakingRewards is Initializable, OwnableUpgradeable {
      * @dev Call this function to stake tokens amount.
      * @param _amount - value of the tokens to stake.
      */ 
-    function stake(uint256 _amount) external {
+    function stake(uint256 _amount, address _staker) external {
         require(_amount > 0, "Amount couldn't be 0");
+        
+        _updateReward(_staker);
         stakingToken.transferFrom(msg.sender, address(this), _amount);
         totalSupply += _amount;
         stakedUserAmount[msg.sender] += _amount;
@@ -84,9 +87,11 @@ contract NeonStakingRewards is Initializable, OwnableUpgradeable {
      * @dev Call this function to withdraw staked tokens amount.
      * @param _amount - value of the tokens to withdraw.
      */
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount, address _staker) external {
         require(_amount > 0, "Amount couldn't be 0");
         require(stakedUserAmount[msg.sender] >= _amount, "Insufficient balance");
+
+        _updateReward(_staker);
         totalSupply -= _amount;
         stakedUserAmount[msg.sender] -= _amount;
         stakingToken.transfer(msg.sender, _amount);
@@ -99,20 +104,67 @@ contract NeonStakingRewards is Initializable, OwnableUpgradeable {
      * 
      * @param _staker - account which earned rewards.
      */
-    function earn(address _staker) external view returns(uint256 _amount) {
+    function earn(address _staker) public view returns(uint256 _amount) {
         uint256 stakedAmount = stakedUserAmount[_staker];
         uint256 userRewardPerToken = userRewardPerTokenPaid[_staker];
-        
-        return stakedAmount * ((calculateRewardPerToken() - userRewardPerToken) / 1e18) + rewards[_staker];
+
+        return (stakedAmount *  (calculateRewardPerToken() - userRewardPerToken)) / 1e18 + rewards[_staker];
     }
  
     // stakers can claim their rewards
-    function claimReward() external {
+    function claimReward(address _staker) external {
+        _updateReward(_staker);
 
+        uint256 reward = rewards[_staker];
+        if(reward > 0) {
+          rewards[_staker] = 0;
+          rewardsToken.transfer(_staker, reward);
+        }
     }
 
+    /**
+     * @dev Calculate the current reward per token. 
+     */
     function calculateRewardPerToken() public view returns(uint256) {
+        if (totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return rewardPerTokenStored + (
+            rewardRate * (lastTimeRewardApplicable() - rewardRateUpdatedAt) * 1e18
+        ) / totalSupply;
+    }
+    
+    /**
+     * @dev Return the timestamp, when the last reward is still available.
+     */
+    function lastTimeRewardApplicable() public view returns(uint256){
+        return _min(block.timestamp, rewardFinishAt);
+    }
 
+    /**
+     * @dev Return minimum number between 2 values. 
+     * @param x - 1st number 
+     * @param y - 2nd number
+     */
+    function _min(uint256 x, uint256 y) private pure returns(uint256) {
+        return x < y ? x : y;
+    }
+
+    /**
+     * @dev Update the reward for a specific staker.
+     * @param _staker - account which balance should be updated.
+     */
+    function _updateReward(address _staker) private {
+        // Update the rewardPerToken for a current value
+        rewardPerTokenStored = calculateRewardPerToken();
+        // if the reward is still ongoing, the "lastTimeRewardApplicable()" 
+        // will return the current block.timestamp, and if the reward is elapsed
+        // the "lastTimeRewardApplicable()" will return the time when it is expired
+        rewardRateUpdatedAt = lastTimeRewardApplicable();
+        if(_staker != address(0)) {
+            rewards[_staker] = earn(_staker);
+            userRewardPerTokenPaid[_staker] = rewardPerTokenStored;
+        }
     }
 
 }
