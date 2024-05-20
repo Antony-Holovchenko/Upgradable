@@ -11,7 +11,7 @@ async function main() {
         {initializer: "initialize"}
     )
     await tokenProxy.waitForDeployment()
-    console.log(`Successfully deployed proxy`)
+    console.log(`Successfully deployed Neon proxy`)
     
 }
 
