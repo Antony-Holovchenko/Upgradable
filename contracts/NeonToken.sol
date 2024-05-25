@@ -9,8 +9,8 @@ contract NeonToken is Initializable, ERC20Upgradeable, OwnableUpgradeable {
 
     event Minted(address minter, uint256 amount);
    
-    function initialize(string memory _name, string memory _symbol) external initializer {
-        __ERC20_init(_name, _symbol);
+    function initialize() external initializer {
+        __ERC20_init("Neon", "NEO");
         __Ownable_init(msg.sender);
     }
 

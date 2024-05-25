@@ -3,7 +3,7 @@
   "scripts": {
     "hc": "hardhat compile",
     "hd": "hardhat deploy",
-    "hds": "hardhat deploy --network sepolia",
+    "hrs": "hardhat run --network sepolia",
     "ht": "hardhat test"
   },
   "devDependencies": {
