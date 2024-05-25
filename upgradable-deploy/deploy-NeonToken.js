@@ -1,19 +1,27 @@
+
 const { ethers, upgrades} = require("hardhat")
 
-async function main() {
+async function deployNeonToken() {
     const tokenFactory = await ethers.getContractFactory("NeonToken")
     
     console.log("Start deploying proxy contract...")
     
     const tokenProxy = await upgrades.deployProxy(
         tokenFactory, 
-        ["Neon", "NEO"],
+        [],
         {initializer: "initialize"}
     )
     await tokenProxy.waitForDeployment()
-    console.log(`Successfully deployed Neon proxy`)
-    
+
+    console.log(`Deployed Neon Token proxy at: ${await tokenProxy.getAddress()} \n`)
+    return await tokenProxy.getAddress();
 }
 
-main()
+deployNeonToken()
+.then(() => process.exit(0))
+.catch(error => {
+    console.error(error);
+    process.exit(1);
+});
 
+module.exports = { deployNeonToken }

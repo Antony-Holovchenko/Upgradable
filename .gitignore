@@ -17,5 +17,7 @@ node_modules
 ignition/deployments/chain-31337
 
 # OpenZeppelin
-.openzeppelin/dev-*.json
-.openzeppelin/.session
+.openzeppelin
+
+#localhost
+/deploy/localhost
